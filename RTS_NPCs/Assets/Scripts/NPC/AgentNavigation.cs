@@ -3,7 +3,7 @@ using UnityEngine.AI;
 
 public class AgentNavigation : MonoBehaviour
 {
-    public NPC_Behavior script_NpcBehavior;
+    public NPC_Behavior ref_NPC_Behavior;
     public NavMeshAgent navMeshAgent;
 
     private float randomStopDistance;
@@ -14,19 +14,27 @@ public class AgentNavigation : MonoBehaviour
 
     private void Start()
     {
-        randomStopDistance = Random.Range(1f, 2.5f);
+        if (ref_NPC_Behavior)
+        {
+            if (ref_NPC_Behavior.randomizeDistTolerance)
+                randomStopDistance = ref_NPC_Behavior.tarDistTolerance + Random.Range(0.01f, 0.5f);
+            else
+                randomStopDistance = ref_NPC_Behavior.tarDistTolerance;
+        }
+        else
+            randomStopDistance = Random.Range(1f, 2.5f);
         navMeshAgent.stoppingDistance = randomStopDistance;
     }
 
     // Start is called before the first frame update
     void OnEnable()
     {
-        if (!script_NpcBehavior)
+        if (!ref_NPC_Behavior)
         {
             if (transform.GetComponent<NPC_Behavior>())
-                script_NpcBehavior = transform.GetComponent<NPC_Behavior>();
+                ref_NPC_Behavior = transform.GetComponent<NPC_Behavior>();
             else
-                script_NpcBehavior = gameObject.AddComponent<NPC_Behavior>();            
+                ref_NPC_Behavior = gameObject.AddComponent<NPC_Behavior>();            
         }
 
         if (!navMeshAgent)
@@ -41,48 +49,46 @@ public class AgentNavigation : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!script_NpcBehavior)
+        if (!ref_NPC_Behavior)
             return;       
 
         // if we have a target
-        if (script_NpcBehavior.mySigTar && Time.time > reducedUpdateCall + updateWaitTime)
+        if (ref_NPC_Behavior.mySigTar && Time.time > reducedUpdateCall + updateWaitTime)
         {
             // if we are in range
-            if (IsInRangeToTarget(script_NpcBehavior.mySigTarPosition))
+            if (IsInRangeToTarget(ref_NPC_Behavior.mySigTarPosition))
             {
-                print("reached target");
-                script_NpcBehavior.reachedSigTar = true;
-                script_NpcBehavior.isMoving = false;
+                //print("reached target");                
+                ref_NPC_Behavior.ChangeIsMoving(false);
                 LookToSigTar(); // only fix rotation if we've already arrived at our target
             }
             else // else we are not in range
             {
-                script_NpcBehavior.reachedSigTar = false;
-                script_NpcBehavior.isMoving = true;
-                navMeshAgent.SetDestination(script_NpcBehavior.mySigTarPosition);
+                ref_NPC_Behavior.ChangeIsMoving(true);
+                navMeshAgent.SetDestination(ref_NPC_Behavior.mySigTarPosition);
             }
 
             reducedUpdateCall = Time.time;
         }// end of have a signal target
 
         //// if we have a target AND 
-        //if (script_NpcBehavior.mySigTar && script_NpcBehavior.isSelected)
+        //if (ref_NPC_Behavior.mySigTar && ref_NPC_Behavior.isSelected)
         //{            
-        //    navMeshAgent.SetDestination(script_NpcBehavior.mySigTarPosition);            
+        //    navMeshAgent.SetDestination(ref_NPC_Behavior.mySigTarPosition);            
         //}
 
         //// if we have a target and the distance equals or is less than our stop-dist then we've reached the target
-        //if (script_NpcBehavior.mySigTar && IsInRangeToTarget(script_NpcBehavior.mySigTarPosition) && navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
+        //if (ref_NPC_Behavior.mySigTar && IsInRangeToTarget(ref_NPC_Behavior.mySigTarPosition) && navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
         //{
-        //    script_NpcBehavior.reachedSigTar = true;
-        //    script_NpcBehavior.isMoving = false;
+        //    ref_NPC_Behavior.reachedSigTar = true;
+        //    ref_NPC_Behavior.isMoving = false;
         //    LookToSigTar(); // only fix rotation if we've already arrived at our target
         //}
-        //else if (script_NpcBehavior.mySigTar && !IsInRangeToTarget(script_NpcBehavior.mySigTarPosition) && navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance)
+        //else if (ref_NPC_Behavior.mySigTar && !IsInRangeToTarget(ref_NPC_Behavior.mySigTarPosition) && navMeshAgent.remainingDistance > navMeshAgent.stoppingDistance)
         //{
-        //    script_NpcBehavior.reachedSigTar = false;
-        //    script_NpcBehavior.isMoving = true;
-        //    navMeshAgent.SetDestination(script_NpcBehavior.mySigTarPosition);
+        //    ref_NPC_Behavior.reachedSigTar = false;
+        //    ref_NPC_Behavior.isMoving = true;
+        //    navMeshAgent.SetDestination(ref_NPC_Behavior.mySigTarPosition);
         //}
         
     }// end of Update()
@@ -99,10 +105,10 @@ public class AgentNavigation : MonoBehaviour
 
     private void LookToSigTar()
     {
-        if (!script_NpcBehavior.mySigTar)
+        if (!ref_NPC_Behavior.mySigTar)
             return;
         // Determine which direction to rotate towards
-        Vector3 targetDirection = script_NpcBehavior.mySigTar.position - transform.position;
+        Vector3 targetDirection = ref_NPC_Behavior.mySigTar.position - transform.position;
         // The step size is equal to speedRotate times frame time.
         float singleStep = speedRotate * Time.deltaTime;
         // Rotate the forward vector towards the target direction by one step

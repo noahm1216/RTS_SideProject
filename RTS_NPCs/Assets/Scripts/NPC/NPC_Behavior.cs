@@ -28,8 +28,12 @@ public class NPC_Behavior : MonoBehaviour
 
     //-------------------------Information about this unit
 
+    //if it's a building
+    public enum LastAction { None, wasBuilding, wasGathering, wasDelivering, wasWalking} // wasFighting
+    
+
     //healtPoints
-    public int healtPoints = 1;
+    public int healtPoints = 10;
     // health points range
     private Vector2 healthPointsRange = new Vector2(0, 100);
     //speedMove
@@ -38,37 +42,39 @@ public class NPC_Behavior : MonoBehaviour
     public Vector2 speedMoveRange = new Vector2(0, 1);
     //actionRange
     //actionCooldown
-    private float actionCooldownTime = 5.5f;
+    private float actionCooldownTime = 3.5f;
     //actionCooldownTimer
     private float actionCooldownTimer;
     //carryAmount
     [Tooltip("the amount this unit can carry. a static number that experience will multiply")]
     public Vector3Int carryAmountStarting = new Vector3Int(0,3,3); // X = current || Y = Normal Max || Z = Multiplied Max (based on XP)
-    // the actual items we are carrying (can take this from the SigTar)
-    public SimpleInteractor.ResourceType collectedResource;
+    //references to the last items, objects, or units we were interacting with
+    private UnitExperienceHistory.ExperienceType mostRecentInteractionExp;
+    private SimpleInteractor.BuildingType mostRecentBuildingExp;
+    private SimpleInteractor.ResourceType mostRecentResourceExp;
+    public LastAction mostRecentAction;
 
 
 
-    //the list of unique experiences we have (for ex: all trees count as one experience)
+    //the list of unique experiences we have (for ex: all trees count as one experience skill/item)
     public List<UnitExperienceHistory> myExperience = new List<UnitExperienceHistory>();
 
 
     //-------------------Signal Target information 
+    [Range(1.8f, 5f)]
+    public float tarDistTolerance = 2; // sweet spot is somewhere arnound 1.8-3;
+    public bool randomizeDistTolerance = true;
 
-    [HideInInspector]
-    public Transform mySigTar;
-    private Vector3 lastSigTarPos;
-    private bool commandedFromSignal;
-    [HideInInspector]
-    public Vector3 mySigTarPosition;
-    [HideInInspector]
-    public bool reachedSigTar;
-    // for sending signal to interactable
-    private SimpleInteractor mySigTarInteractor;
+    public Transform mySigTar { get; private set; }
+    public Transform lastSigTar { get; private set; }
+    public Vector3 mySigTarPosition { get; private set; }
+    public Vector3 lastSigTarPosition { get; private set; } // NOTE: MIGHT NOT need this
+    private bool commandedFromSignal;    
+    private SimpleInteractor ref_SigTar_SimpleInteractor; // for sending signal to interactable
 
     // variables for animation
-    [HideInInspector]
-    public bool isMoving, takingAction;
+    public bool isMoving { get; private set; }
+    public bool takingAction { get; private set; }
 
     // Start is called before the first frame update
     void OnEnable()
@@ -82,18 +88,38 @@ public class NPC_Behavior : MonoBehaviour
     {
         SendCommand.targetClick -= SignalTarget;
         Manager_Objects.npcObjects.Remove(gameObject);
+        SelectThisUnit(false);
     }// end of OnDisable()
+  
+    public void SelectThisUnit(bool select)
+    {
+        isSelected = select;
+        // visuals
+        if (activeVisObj)
+            activeVisObj.SetActive(select);
+        if (playerOutlineMesh && !select)
+            playerOutlineMesh.material.SetFloat(shaderOutlineProperty, shaderOutlineRange.x);
+        if (playerOutlineMesh && select)
+            playerOutlineMesh.material.SetFloat(shaderOutlineProperty, shaderOutlineRange.y);
+
+    }// end of SelectThisUnit()
+
+    public void OnMouseUp()
+    {
+        // TODO --- This command should send from a left-click raycast or from trigger collide with drag select
+        SelectThisUnit(true);
+    }// end of OnMouseUp()
 
     public void SignalTarget(RaycastHit _sigTar)
     {   // if this unit is actively selected during the signal
-        if (isSelected) 
+        if (isSelected)
         {
-            if(mySigTar)
-                lastSigTarPos = mySigTar.position;
-            mySigTarInteractor = null;
+            if (mySigTar) // store reference to return
+            { lastSigTar = mySigTar; lastSigTarPosition = lastSigTar.position; }
+            ref_SigTar_SimpleInteractor = null;
             mySigTar = _sigTar.transform;
             mySigTarPosition = _sigTar.point;
-            reachedSigTar = false;
+            //print($"COMPARING POSITIONS: object position - {mySigTar.position} VS hitpoint - {_sigTar.point} ");
             commandedFromSignal = true;
         }
     }//end of SignalTarget(Transform _sigTar)
@@ -103,226 +129,289 @@ public class NPC_Behavior : MonoBehaviour
     {
         if(showDebug)
             print($"Unit: {transform.name} - is going to: {_senTar.name}");
-        if (mySigTar)
-            lastSigTarPos = mySigTar.position;
-        mySigTarInteractor = null;
-        mySigTar = _senTar;
-        mySigTarPosition = _senTar.position;
-        reachedSigTar = false;
-        commandedFromSignal = false;
+
+        if (_senTar != null)
+        {
+            if (mySigTar) // store reference to return
+            { lastSigTar = mySigTar; lastSigTarPosition = lastSigTar.position; }
+            ref_SigTar_SimpleInteractor = null;
+            mySigTar = _senTar;
+            mySigTarPosition = _senTar.position;
+            commandedFromSignal = false;
+        }
     }// end of SendTarget(Transform _senTar)
 
-
-    public void SelectThisUnit(bool select)
+    public bool ReachedTarget()
     {
-        isSelected = select;
-        // visuals
-        if(activeVisObj)
-            activeVisObj.SetActive(select);
-        if (playerOutlineMesh && !select)
-            playerOutlineMesh.material.SetFloat(shaderOutlineProperty, shaderOutlineRange.x);
-        if (playerOutlineMesh && select)
-            playerOutlineMesh.material.SetFloat(shaderOutlineProperty, shaderOutlineRange.y);        
+        if (mySigTar == null)
+        { Debug.Log($"WARNING: Unit {transform.name} - tried to reach a target with no target selected."); return false; }
 
-    }// end of SelectThisUnit()
+        float dist = Vector3.Distance(transform.position, mySigTarPosition);
+        //print($"Dist To Sigtar = {Math.Round(dist*100) / 100.0f}");
+
+        return dist <= tarDistTolerance*1.5f;
+    }
+
+    public void ChangeIsMoving(bool _isMoving)
+    {
+        if (showDebug && isMoving != _isMoving)
+            print($"Changing Moving from {isMoving} - to - {_isMoving}");
+        isMoving = _isMoving;
+    }
+
+    public bool UnitCarryCapacityFull()
+    {
+        if (carryAmountStarting.x >= carryAmountStarting.z)
+            carryAmountStarting.x = carryAmountStarting.z;
+        if (carryAmountStarting.x <= 0)
+            carryAmountStarting.x = 0;
+
+        return carryAmountStarting.x >= carryAmountStarting.z;
+    }
+
+    public void ResetCarryCapacity()
+    {
+        carryAmountStarting.x = 0;
+    }
 
     public void Update()
     {// anytime we press the mouse it should remove our selection
         if (Input.GetMouseButtonDown(0)) // TODO - change this to account for UI menus in the future
-            SelectThisUnit(false); //               for example only when we click on a non-ui object
+            SelectThisUnit(false); //               for example only when we click on a non-ui object      
 
-        if (reachedSigTar) // if we are within range to our target
-            CalculateActionCooldown();
+        if (mySigTar && ReachedTarget() && !isMoving) // if we are within range to our target & not moving
+            DecideAction();//CalculateActionCooldown();
+      
+        if (isMoving) // make sure we're not improperly animating / taking actions
+            ResetActionTimer(true, false);
 
-        if (isMoving)
+        if (!ReachedTarget())
+            mostRecentAction = LastAction.wasWalking;
+    }// end of Update()  
+
+    private bool ActionCooldownIsReady()
+    {      
+        if (Time.time > actionCooldownTimer + actionCooldownTime)
         {
-            ResetActionTimer();
-            takingAction = false;
+            if(showDebug) print("ActionTimeReady");
+            takingAction = true;
+            ResetActionTimer(false, true);
+            return true;
         }
-    }// end of Update()
+        return false;
+    }
 
-    public void OnMouseUp()
+    public void ResetActionTimer(bool _resetTakeAction, bool _resetTimer)
     {
-        // TODO --- This command should send from a left-click raycast or from trigger collide with drag select
-        SelectThisUnit(true); 
-    }// end of OnMouseUp()
+        if (showDebug)  print("ResettingActionTimer");
+        if (_resetTimer)
+            actionCooldownTimer = Time.time;
+        if (_resetTakeAction)
+            takingAction = false;
+    }
 
-
-    private void CalculateActionCooldown()
-    {
-        //print("I have reached the target");
-
-        if (mySigTar && mySigTar.tag == "Collectable" || mySigTar && mySigTar.tag == "Building") // mySigTar.tag == "NPC" //------------------------ TODO: Add condition for if we click on an NPC
+    private void DecideAction()
+    {        
+        if (mySigTar && !ref_SigTar_SimpleInteractor)
+            mySigTar.TryGetComponent(out ref_SigTar_SimpleInteractor);
+        
+        if (!ref_SigTar_SimpleInteractor)
+        { Debug.Log($"WARNING: Unit cannot find SimpleInteractor for this object... STOPPING CalculateActionCooldown() on: {transform.name}"); return; }
+        
+        if (ActionCooldownIsReady()) // if we are not ready to begin acting then we should stop here
         {
-            print($"interacting with sigTar: {mySigTar.tag}");
-            // get a reference || --> AS LONG AS NOT A UNIT
-            if (!mySigTarInteractor)
-            { mySigTarInteractor = mySigTar.transform.GetComponent<SimpleInteractor>(); print($"Grabbed reference to mySigtar {mySigTar.tag} - SimpleInteractor"); }
+            // figure out what we are interacting with
+            switch (ref_SigTar_SimpleInteractor.listedExperience)
+            {
+                case UnitExperienceHistory.ExperienceType.Building:
+                    print("Action - Building");
+                    ActionBuilding();
+                    break;
+                case UnitExperienceHistory.ExperienceType.Collectable:
+                    print("Action - Collecting");
+                    ActionCollectable();
+                    break;
+                case UnitExperienceHistory.ExperienceType.Unit:
+                    print("Action - Unit");
+                    ActionUnit();
+                    break;
+                default:
+                    Debug.Log($"WARNING: Unit SigTar SimpleInteractor experience type ({ref_SigTar_SimpleInteractor.listedExperience}) not considered... STOPPING CalculateActionCooldown() on: {transform.name}");
+                    break;
+            }
+        }
+    }    
 
-            // if there is work to be done then begin
-            if (!mySigTarInteractor.thisInteractorFinished)
-                takingAction = true; // this could work for REPAIR / BUILDING || or RESOURCE gathering
+    private void ActionBuilding()
+    {       
+        if (ref_SigTar_SimpleInteractor.thisInteractorFinished)  // if building is completed
+        {
+            // if we were just building
+            if (mostRecentAction == LastAction.wasBuilding)
+            {
+                FindClosestBuilding(transform.position, mostRecentBuildingExp, true);
+            }
             else
             {
-                //if(showDebug)
-                print("calc cooldown: this is where we can drop off resources or repair a building");
-                // is a building
-                if (mySigTarInteractor.listedExperience == UnitExperienceHistory.ExperienceType.Building)
-                {
-                    //if (showDebug)
-                    print("calc cooldown: IS A BUILDING");
-                    // if resource house
-                    if (mySigTarInteractor.myBuilding == SimpleInteractor.BuildingType.Resource) // TODO: change this to a switch case of the different types
+                // if it's a resource 
+                if (ref_SigTar_SimpleInteractor.myBuilding == SimpleInteractor.BuildingType.Resource)
+                { // AND it accepts our resource type 
+                    if (ref_SigTar_SimpleInteractor.myResource == SimpleInteractor.ResourceType.None || ref_SigTar_SimpleInteractor.myResource == mostRecentResourceExp)
                     {
-                        TradeResources(null, !commandedFromSignal); // MAYBE WE ADD RESOURCE TO A STATIC MANAGER // ------------------- SOME ERROR HERE NULL REF - NOT SURE WHY YET
-                        if (showDebug)
-                            print("calc cooldown: should have just dropped off our resource");
-                    }// end of is resource house
-
-                }// end of is building
-            }
-
-            if (takingAction && Time.time > actionCooldownTimer + actionCooldownTime)
-            {
-                if (showDebug)
-                    print("Finished A Round of Action");
-                if(mySigTar.tag == "Collectable" && carryAmountStarting.x >= carryAmountStarting.z) // TODO: add new variables for our carry amount based on our resource experience
-                {
-                    if (showDebug)
-                        print("UNIT CAPACITY FULL");
-                    RemoveTarget();
-                    FindClosestBuilding(transform.position, SimpleInteractor.BuildingType.Resource, false);
+                        if (carryAmountStarting.x > 0) TradeAResources(mostRecentResourceExp, carryAmountStarting.x); // AND if we have resources --> then drop them off and return to our target
+                        if (!commandedFromSignal) // if we dropped off a resource because we were at full capacity then we should return back to it
+                        { if (showDebug) print($"We should return to our last target {lastSigTar.name} || ActionBuilding()"); SendTarget(lastSigTar); }
+                        mostRecentAction = LastAction.wasDelivering;
+                    }
                 }
-
-                ResetActionTimer();               
-                CheckExperience(mySigTarInteractor.InteractNow(this)); // TODO: this is where we are sending and grabbing the experience data, but we need to check if the resource / building is legit first 
-                // TODO: we want a way to communicate our experience and how much of the SimpleInteractor is providing us. Maybe we can setup a return path that involves the SimpleInteractor bridging the gap between Unit and Object
+                // else we may want to do other things but right now Im not sure of them (like traders or libraries or etc)
             }
-            
         }
-        if (!mySigTar) // if we don't have a target to refer to anymore
+        else // this building is NOT finished (or needs repairs)
+        {           
+            if (ref_SigTar_SimpleInteractor)
+            {              
+                // assign our building type
+                mostRecentBuildingExp = ref_SigTar_SimpleInteractor.myBuilding;
+                // store that we were building (to clarify for when we finish building)
+                mostRecentAction = LastAction.wasBuilding;
+                // begin building it up
+                UnitExperienceHistory newExpToCompare = ref_SigTar_SimpleInteractor.InteractNow(this, 1);
+                // check if our interactor is complete and if so find the next closest one (maybe within a range?)
+                if (newExpToCompare == null || ref_SigTar_SimpleInteractor.thisInteractorFinished) FindClosestBuilding(transform.position, mostRecentBuildingExp, true);
+                else mostRecentInteractionExp = UnitExperienceHistory.ExperienceType.Building;
+                CheckExperience(newExpToCompare);
+            }
+            else
+                Debug.Log($"WARNING: No Sigtar SimpleInteractor reference can be found on: {mySigTar.transform.name}");
+        }
+    }
+
+    private void ActionCollectable()
+    {
+        // check if this is the same type as the last collectable we collected
+        if (ref_SigTar_SimpleInteractor.myResource != mostRecentResourceExp)
         {
-            print($"NO sigTar found: ");
-            //store the last position we were at
-            lastSigTarPos = transform.position;
-            //if we have resources
-            if (collectedResource != SimpleInteractor.ResourceType.None && carryAmountStarting.x > 0)
+            ResetCarryCapacity(); //  then reset our variables          
+            mostRecentResourceExp = ref_SigTar_SimpleInteractor.myResource; // assign our resource type                    
+        }
+
+        if (ref_SigTar_SimpleInteractor.thisInteractorFinished && !UnitCarryCapacityFull()) // check if the resource is depleted 
+            FindClosestResource(mySigTarPosition, mostRecentResourceExp);  // if it is then find a new one nearby it
+
+        if (UnitCarryCapacityFull()) // check if we are full
+            FindClosestBuilding(transform.position, SimpleInteractor.BuildingType.Resource, false); // if we are then let's find the closest resource building       
+        else
+        {
+            if (ref_SigTar_SimpleInteractor)
             {
-                if (showDebug)
-                    print("need to call the function to drop off any resources we might have");
-                reachedSigTar = false;
-                takingAction = false;
-                FindClosestBuilding(transform.position, SimpleInteractor.BuildingType.Resource, false);
+                UnitExperienceHistory newExpToCompare = ref_SigTar_SimpleInteractor.InteractNow(this, -1); // begin building it up
+                if (newExpToCompare == null) FindClosestResource(transform.position, mostRecentResourceExp);
+                else mostRecentInteractionExp = UnitExperienceHistory.ExperienceType.Collectable;
+                mostRecentAction = LastAction.wasGathering;
+                CheckExperience(newExpToCompare);
             }
         }
-            
+    }
 
-    }// end of CalculateActionCooldown()
+    private void ActionUnit() // TODO: take a moment to DESIGN out what I want to happen here
+    {
+        print($"NOTE: No Action Information for ActionUnit() - on: {transform.name}");
+        // NOTE: check if friendly or not ... check range of weapon 
+        //       if friendly, could transfer resources, or heal, or follow... 
+        //       if not friendly maybe attack or something else
+        // this hasnt been figured out yet 
 
-    private void CheckExperience(UnitExperienceHistory _unitExperienceHistory)
+        mostRecentInteractionExp = UnitExperienceHistory.ExperienceType.Unit;
+        //mostRecentAction = LastAction.wasFighting;
+    }
+
+    private void CheckExperience(UnitExperienceHistory _newExpToCompare) // This function adds or ammends our experience list
     {
         if (showDebug)
             print("verifying experience");
 
-        if (_unitExperienceHistory == null) // we completed whatever we were doing
-        {
-            print("we were NOT able to interact anymore");
-            RemoveTarget();
-            CalculateActionCooldown();
-        }
-        else // if we have something to work on
-        {
-
-            // if we have any experience
-            if (myExperience.Count > 0)
+        if (_newExpToCompare != null) // if we have something to work on
+        {           
+            if (myExperience.Count > 0)  // if we have any experience
             {
-                bool foundExpMatch = false;
-                // check our EXP
-                for (int e = 0; e < myExperience.Count; e++)
+                bool foundExpMatch = false;                
+                for (int e = 0; e < myExperience.Count; e++) // check our current EXP
                 {
-                    if (myExperience[e].actionName == _unitExperienceHistory.actionName)
+                    if (myExperience[e].actionName == _newExpToCompare.actionName)
                     {
-                        myExperience[e].numberOfActionsCompleted += _unitExperienceHistory.numberOfActionsCompleted;
+                        myExperience[e].numberOfActionsCompleted += _newExpToCompare.numberOfActionsCompleted;
+                        myExperience[e].totalInteractorValuesReturned += _newExpToCompare.totalInteractorValuesReturned;
+                        if(showDebug) print($"Experience makes this action's carry max to be: {carryAmountStarting.y} * {myExperience[e].numberOfActionsCompleted} / {10} (+ 3) = {3 + (carryAmountStarting.y * (myExperience[e].numberOfActionsCompleted / 10))}");
+                        carryAmountStarting.z = 3 + (carryAmountStarting.y * (myExperience[e].numberOfActionsCompleted/10) ); // give 3 for every 10 experience doing something
                         foundExpMatch = true;
                         break;
                     }
+                }                
+                if (!foundExpMatch) //if no match then we need to add the experience
+                {
+                    myExperience.Add(_newExpToCompare);
+                    carryAmountStarting.z = carryAmountStarting.y;
                 }
-                //if no match then we need to add the experience
-                if (!foundExpMatch)
-                    myExperience.Add(_unitExperienceHistory);
             }
-            // if no experience yet
-            else
-                myExperience.Add(_unitExperienceHistory);
+            else // if no experience yet
+                myExperience.Add(_newExpToCompare);
 
-            // depending on which unit we selected we can take an action
-            switch (_unitExperienceHistory.listedExperience)
-            {
-                case UnitExperienceHistory.ExperienceType.Unit:
-                    // TODO: add function that heals or damages unit based on context
-                    break;
-                case UnitExperienceHistory.ExperienceType.Collectable:
-                    CollectResourceBasedOnExperience(_unitExperienceHistory);
-                    break;
-                case UnitExperienceHistory.ExperienceType.Building:
-                    // TODO: add function that when building / repair is finished we look for another building that needs the same
-                    break;
-                default:
-                    if (showDebug)
-                        print($"ERR: CHK EXP - on {transform.name} - recieved unrecognized EXP: {_unitExperienceHistory.listedExperience}");
-                    break;
-            }
+            ChangeResourceBasedOnExperience(_newExpToCompare);
+        }
+        else // if we got a null exp to compare (which shouldnt happen) then we need to find something new to do
+        {
+            ResetActionTimer(true, false);
+            DecideAction();
         }
     }// end of CheckExperience()
 
 
-    public void ResetActionTimer()
+    public void ChangeResourceBasedOnExperience(UnitExperienceHistory _newExpToCompare)
     {
-        actionCooldownTimer = Time.time;
-    }// end of ResetTimer()
+        //SimpleInteractor.ResourceType previousResource = mostRecentResourceExp; // TODO: add a check that if we are targeting a new resource we set our carry amount to 0
+        //mostRecentResourceExp = ref_SigTar_SimpleInteractor.myResource; // I think we can delete this because we check for it already
+       
 
+        if (showDebug)
+            print($"UNIT ADDING RESOURCE: {mostRecentResourceExp}");
 
-    public void RemoveTarget()
-    {
-        reachedSigTar = false;
-        reachedSigTar = false;
-        takingAction = false;
-        mySigTarInteractor = null;
-    }// end of RemoveTarget()
-
-
-    
-    public void CollectResourceBasedOnExperience(UnitExperienceHistory _unitExperienceHistory)
-    {
-        SimpleInteractor.ResourceType previousResource = collectedResource; // TODO: add a check that if we are targeting a new resource we set our carry amount to 0
-        collectedResource = mySigTarInteractor.myResource;
-
-        // if we have a resource type we can add our experience to it
-        if(collectedResource != SimpleInteractor.ResourceType.None)
+        switch (mostRecentInteractionExp)
         {
-            // if our current carry amount is greather than our max
-            if(carryAmountStarting.x >= carryAmountStarting.z) // TODO: add new variables for our carry amount based on our resource experience
-            {
-                if (showDebug)
-                    print("UNIT DONE CARRYING");
-                RemoveTarget();
-                FindClosestBuilding(transform.position, SimpleInteractor.BuildingType.Resource, false);
-            }
-            else
-            {
-                if (showDebug)
-                    print($"UNIT ADDING RESOURCE: {collectedResource}");
-                carryAmountStarting.x++;
-            }
+            case UnitExperienceHistory.ExperienceType.Collectable:
+                if (showDebug) print($"Checking If I Can Carry More: {carryAmountStarting.x} / {carryAmountStarting.z} = {UnitCarryCapacityFull()} || ChangeResourceBasedOnExperience(_newExpToCompare)");
+                if (mostRecentResourceExp == SimpleInteractor.ResourceType.None) Debug.Log($"WARNING: Resource type is set to none for target: {mySigTar.name}"); // check for null resource
+                carryAmountStarting.x += (_newExpToCompare.totalInteractorValuesReturned); // NOTE: if we want to change how much Resource WE get, this is the final section its applied || could do something like: "carryAmount.x = valReturned + (exp/10)"
+                if (UnitCarryCapacityFull()) FindClosestBuilding(transform.position, SimpleInteractor.BuildingType.Resource, false);
+                break;
+            case UnitExperienceHistory.ExperienceType.Building: // TODO: when we are taking resource, we will need a more complex system if we have more than just WOOD... like how can we tell if a building needs WOOD || or STONE to repair / build ? 
+                TradeAResources(SimpleInteractor.ResourceType.Wood, _newExpToCompare.totalInteractorValuesReturned * -1);
+                break;
+            case UnitExperienceHistory.ExperienceType.Unit:
+                break;
+            default:
+                break;
         }
+    }// end of ChangeResourceBasedOnExperience
 
-    }// end of CollectResourceBasedOnExperience
 
+    private void TradeAResources(SimpleInteractor.ResourceType _resType, int _changeBy)
+    {        
+        if (Manager_Objects.CanChangeResources(mostRecentResourceExp, _changeBy))
+        {
+            if (_changeBy > 0) // if "_changeBy" is positive we are delivering a resource || otherwise we are taking the resource
+                carryAmountStarting.x = 0;
+        }
+        else
+            Debug.Log($"WARNING: Unit: ({transform.name}) - Could not DeliverResources({mostRecentResourceExp},{carryAmountStarting.x})");
+    }
 
     public void FindClosestBuilding(Vector3 _position, SimpleInteractor.BuildingType _buildingType, bool _onlyUnfinishedOnes)
     {
-        if (showDebug)
-            print("finding closest resource building");
+        if (showDebug) print("finding closest resource building");
+
+        // create a list we can populate with buildings that match our filters passed
+        // based on those filters try to find the closes one that fits the requirements
 
         List<Transform> allTargetedBuildings = new List<Transform>();
         if (Manager_Objects.buildingObjects.Count == 0)
@@ -331,30 +420,37 @@ public class NPC_Behavior : MonoBehaviour
         // make an update list of only those buildings
         foreach (GameObject buildingObj in Manager_Objects.buildingObjects)
         {
-            SimpleInteractor buildingInteractorScript = buildingObj.GetComponent<SimpleInteractor>();
-            // if we are currently building then we want to find other buildings to build
-            if (_onlyUnfinishedOnes && !buildingInteractorScript.thisInteractorFinished)
-                allTargetedBuildings.Add(buildingObj.transform);
-            // else we are just looking for already built versions of this building
-            else if (buildingInteractorScript.myBuilding == _buildingType && buildingInteractorScript.thisInteractorFinished)
-                allTargetedBuildings.Add(buildingObj.transform);
+            SimpleInteractor buildingInteractorScript = null;
+            buildingObj.TryGetComponent(out buildingInteractorScript);
+            if (!buildingInteractorScript) { Debug.Log($"WARNING: Unable to grabe SimpleInteractor from: {buildingObj.transform.name}"); continue; }
+
+            print($"Finding Closest Building: ...\nTarget: OnlyUnfinished-{_onlyUnfinishedOnes} || Type-{_buildingType}\nComparing Against: {buildingObj.transform.name} || unFinished = {!buildingInteractorScript.thisInteractorFinished} || Type = {buildingInteractorScript.myBuilding}");
+
+            //checks for consideration
+            if (allTargetedBuildings.Contains(buildingObj.transform)) continue;
+            // if we were trying to automate building, then we want to find other buildings nearby to help finish building
+            if (_onlyUnfinishedOnes && !buildingInteractorScript.thisInteractorFinished) { allTargetedBuildings.Add(buildingObj.transform); continue; }
+            // if we are just looking for already built versions of this building
+            if (buildingInteractorScript.myBuilding == _buildingType && buildingInteractorScript.thisInteractorFinished) { allTargetedBuildings.Add(buildingObj.transform); continue; }
+            //else
+            //    Debug.Log($"WARNING: An unexpected condition has been requested ... 1-{buildingInteractorScript.myBuilding}... 2-{buildingInteractorScript.thisInteractorFinished} ... 3-{_onlyUnfinishedOnes}");
+            if (showDebug) print($"FCB: Building: {buildingObj.transform.name} ... was not a match");
         }
 
         Transform closestBuilding = null;
         float thatBuildingsDistance = 0;
         // find the closest
-        foreach(Transform buildingTran in allTargetedBuildings)
+        foreach(Transform buildingTran in allTargetedBuildings) // NOTE: we may want to consider EXCLUDING the building we just have... unless it isnt in the list when we check
         {
             float dist = Vector3.Distance(buildingTran.position, transform.position);
-            // if it's the first building we check or the closest thus far, then set it
+            // if it's the first building we check or the closest thus far, then set the distance as the new closest
             if(thatBuildingsDistance == 0 || dist < thatBuildingsDistance)
             {
                 closestBuilding = buildingTran;
                 thatBuildingsDistance = dist;
             }
         }
-        if (showDebug)
-            print($"CLOSEST RESOURCE BUILDING: {closestBuilding.name} || Dist: {thatBuildingsDistance}");
+        if (showDebug) print($"CLOSEST RESOURCE BUILDING: {closestBuilding.name} || Dist: {thatBuildingsDistance}");
         // if we made it this far we should have a building to go to
         if(closestBuilding)
             SendTarget(closestBuilding);
@@ -363,8 +459,7 @@ public class NPC_Behavior : MonoBehaviour
 
     public void FindClosestResource(Vector3 _position, SimpleInteractor.ResourceType _resourceType) //---------TODO: add condition that checks for a reasonable distance
     {
-        if (showDebug)
-            print($"finding closest resource for last position of: {_resourceType}");
+        if (showDebug) print($"finding closest resource for last position of: {_resourceType}");
 
         List<Transform> allResourcesOfSameType = new List<Transform>();
         if (Manager_Objects.collectableObjects.Count == 0)
@@ -400,19 +495,7 @@ public class NPC_Behavior : MonoBehaviour
             SendTarget(closestResource);
 
     }// end of FindClosestResourceBuilding
-
-
-    private void TradeResources(Transform _target, bool returnToLastTarget)
-    {
-        // add carry amount to taker // MAYBE WE ADD RESOURCE TO A STATIC MANAGER
-        // clear our carry amount
-        if (Manager_Objects.CanChangeResources(collectedResource, carryAmountStarting.x))
-            carryAmountStarting.x = 0;
-
-        if (returnToLastTarget) // this lets a worker continue working on their task
-            FindClosestResource(lastSigTarPos, collectedResource);
-
-    }// end of TradeResources()
+   
 
 }// end of NPC_Behavior class
 
@@ -425,12 +508,14 @@ public class UnitExperienceHistory
     public enum ExperienceType {Unit, Collectable, Building }
     public ExperienceType listedExperience;
     public int numberOfActionsCompleted;
+    public int totalInteractorValuesReturned;
 
-    public UnitExperienceHistory(string _actName, ExperienceType _listExp, int _numOfActCom)
+    public UnitExperienceHistory(string _actName, ExperienceType _listExp, int _numOfActCom, int _totalIntrVals)
     {
         actionName = _actName;
         listedExperience = _listExp;
-        numberOfActionsCompleted = _numOfActCom;        
+        numberOfActionsCompleted = _numOfActCom;
+        totalInteractorValuesReturned = _totalIntrVals;
     }
 }// end of UnitExperienceHistory class
 

@@ -166,6 +166,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3078816432cd2e943aec7c80e7c19c69, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  showDebug: 0
   isSelected: 0
   activeVisObj: {fileID: 2809032619809856630}
   playerOutlineMesh: {fileID: 9068411889103345695}
@@ -173,13 +174,10 @@ MonoBehaviour:
   speedMove: 1
   speedMoveRange: {x: 0, y: 1}
   carryAmountStarting: {x: 0, y: 3, z: 3}
-  collectedResource: 0
+  mostRecentAction: 0
   myExperience: []
-  mySigTar: {fileID: 0}
-  mySigTarPosition: {x: 0, y: 0, z: 0}
-  reachedSigTar: 0
-  isMoving: 0
-  takingAction: 0
+  tarDistTolerance: 1.8
+  randomizeDistTolerance: 1
 --- !u!114 &9073462152798870187
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -192,7 +190,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d23bbee26940794c8b6d0fbcb439fc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  script_NpcBehavior: {fileID: 7119774160569765580}
+  ref_NPC_Behavior: {fileID: 0}
   navMeshAgent: {fileID: 6705968010975148331}
 --- !u!114 &-201284417245723191
 MonoBehaviour:

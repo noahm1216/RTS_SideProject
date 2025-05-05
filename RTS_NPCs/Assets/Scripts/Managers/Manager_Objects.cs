@@ -54,7 +54,7 @@ public class Manager_Objects : MonoBehaviour
             default:
                 break;
         }
-        print("Invoking resource changed");
+        //print("Invoking resource changed");
         resourceChanged?.Invoke();
         return true;
     }

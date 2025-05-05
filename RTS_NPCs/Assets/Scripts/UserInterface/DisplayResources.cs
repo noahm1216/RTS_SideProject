@@ -21,7 +21,7 @@ public class DisplayResources : MonoBehaviour
 
     public void UpdateUI()
     {
-        print("THE UI IS READY TO CHANGE ");
+        //print("THE UI IS READY TO CHANGE ");
         if (woodText)
             woodText.text = Manager_Objects.resourceWood.ToString();
 
