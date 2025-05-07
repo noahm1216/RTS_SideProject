@@ -39,6 +39,29 @@ public class Manager_Objects : MonoBehaviour
 
     }// end of Awake()
 
+    private void OnEnable()
+    {
+        SendCommand.targetClick += SendUnitTargetSignals;
+    }
+
+    private void OnDisable()
+    {
+        SendCommand.targetClick -= SendUnitTargetSignals;
+    }
+
+    public void SendUnitTargetSignals(RaycastHit _sigTar) // sending the target though the manager is likely better than having EVERY single unit listening for the signal.
+    {
+        if (npcObjects.Count == 0)
+            return;
+
+        NPC_Behavior _npcBehavior = null;
+        for(int npc = 0; npc < npcObjects.Count; npc++)
+        {
+            npcObjects[npc].TryGetComponent(out _npcBehavior);
+            if(_npcBehavior != null) { _npcBehavior.SignalTarget(_sigTar); _npcBehavior = null; }
+        }
+    }
+
 
     public static bool CanChangeResources(SimpleInteractor.ResourceType _resType, int _changeBy)
     {

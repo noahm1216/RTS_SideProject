@@ -241,7 +241,7 @@ public class InteractorDeConstruction : MonoBehaviour //  LAST LEFT OFF: i was c
 
         if (InteractorStillAvailableToDeConstruct()) // we are not allowed to use this interactor anymore because it's done (either built or collected)
         {           
-            print($"Resource-{transform.name} is being changed by {_amount}");
+            //print($"Resource-{transform.name} is being changed by {_amount}");
             int leftover = BalanceHP(_amount); // TODO: this should not spit out 100
             if (leftover != 0) _amount -= Mathf.Abs(leftover);
             SetHeight();

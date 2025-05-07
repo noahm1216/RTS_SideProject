@@ -183,6 +183,7 @@ GameObject:
   - component: {fileID: 7616309411478015955}
   - component: {fileID: 7688993824375521514}
   - component: {fileID: 8018405671589154689}
+  - component: {fileID: -251445070724452635}
   m_Layer: 0
   m_Name: Collectable_Tree
   m_TagString: Collectable
@@ -265,6 +266,25 @@ CapsuleCollider:
   m_Height: 6
   m_Direction: 1
   m_Center: {x: 0, y: 3, z: 0}
+--- !u!114 &-251445070724452635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8827199673611125829}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_OverrideArea: 0
+  m_Area: 0
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 0
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffff
 --- !u!1 &9120614759914306278
 GameObject:
   m_ObjectHideFlags: 0

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+
 /// <summary>
 /// <para> A listener / sender of events and commands to units from the player </para>
 /// </summary>
@@ -16,13 +17,15 @@ public class SendCommand : MonoBehaviour
     private Vector3 initialRightClickPosition;
 
     // for visual effects
+    private ClickMarker_Handler ref_ClickHandler;
     public GameObject hitpointVfxPrefab;
-    private GameObject hitpointVfx;
-    private ParticleSystem hitpointVfxParticle;
+    private Transform hitpointVfx;
 
     // for signal sending
     public delegate void TargetClicked(RaycastHit _sigTar);
     public static event TargetClicked targetClick;
+
+    
 
     void OnEnable()
     {
@@ -30,11 +33,9 @@ public class SendCommand : MonoBehaviour
             myOrthoCam = Camera.main;
 
         if (hitpointVfxPrefab && !hitpointVfx)
-        {
-            hitpointVfx = Instantiate(hitpointVfxPrefab);
-            if (hitpointVfx.GetComponent<ParticleSystem>())
-                hitpointVfxParticle = hitpointVfx.GetComponent<ParticleSystem>();
-        }
+            hitpointVfx = Instantiate(hitpointVfxPrefab).transform;
+        if (!ref_ClickHandler && hitpointVfx)
+            hitpointVfx.TryGetComponent(out ref_ClickHandler);
     }// end of OnEnable()
 
 
@@ -56,7 +57,7 @@ public class SendCommand : MonoBehaviour
             if (Physics.Raycast(ray, out hit))
             {
                 SelectionStart(ray, hit);
-                PlaceVFX(hit);
+                PlaceVFX(hit);               
             }
         }      
 
@@ -78,8 +79,8 @@ public class SendCommand : MonoBehaviour
     {
         if (hitpointVfx)
             hitpointVfx.transform.position = _hit.point;
-        if (hitpointVfxParticle)
-            hitpointVfxParticle.Play();
+        if (ref_ClickHandler)
+            ref_ClickHandler.NewClickInformation();
     }// end of PlaceVFX(RaycastHit _hit)
            
 
