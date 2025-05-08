@@ -69,7 +69,7 @@ public class AgentNavigation : MonoBehaviour
             else // else we are not in range
             {
                 ref_NPC_Behavior.ChangeIsMoving(true);
-                navMeshAgent.SetDestination(ref_NPC_Behavior.mySigTarPosition);
+                //navMeshAgent.SetDestination(ref_NPC_Behavior.mySigTarPosition);
 
                 NavMeshPath path = new NavMeshPath();
                 if (NavMesh.CalculatePath(transform.position, ref_NPC_Behavior.mySigTarPosition, NavMesh.AllAreas, path))
@@ -98,7 +98,7 @@ public class AgentNavigation : MonoBehaviour
         if (!ref_NPC_Behavior.mySigTar)
             return;
         // Determine which direction to rotate towards
-        Vector3 targetDirection = ref_NPC_Behavior.mySigTar.position - transform.position;
+        Vector3 targetDirection = ref_NPC_Behavior.mySigTarPosition - transform.position;
         // The step size is equal to speedRotate times frame time.
         float singleStep = speedRotate * Time.deltaTime;
         // Rotate the forward vector towards the target direction by one step
@@ -111,11 +111,12 @@ public class AgentNavigation : MonoBehaviour
 
     private IEnumerator PathDelay(NavMeshPath _path)
     {
-        yield return null;
+        yield return new WaitForSeconds(0.05f);
+        //yield return null;
         if (_path.status == NavMeshPathStatus.PathComplete)
-        {
             navMeshAgent.SetPath(_path);
-        }
+        else
+            navMeshAgent.SetDestination(ref_NPC_Behavior.mySigTarPosition);
     }
 
 
