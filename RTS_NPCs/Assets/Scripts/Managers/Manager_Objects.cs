@@ -19,6 +19,9 @@ public class Manager_Objects : MonoBehaviour
     public static event ResourceChanged resourceChanged;
     // resources
     public static int resourceWood { get; private set; }
+    public static int resourceFood { get; private set; }
+    public static int resourceStone { get; private set; }
+    public static int resourceGold { get; private set; }
 
     void Awake()
     {
@@ -74,6 +77,27 @@ public class Manager_Objects : MonoBehaviour
                 if (resourceWood <= 0)
                     resourceWood = 0;
                 break;
+            case SimpleInteractor.ResourceType.Food:
+                if (resourceFood + _changeBy < 0) // if we dont have enough to change, then let the calling function know
+                    return false;
+                resourceFood += _changeBy;
+                if (resourceFood <= 0)
+                    resourceFood = 0;
+                break;
+            case SimpleInteractor.ResourceType.Stone:
+                if (resourceStone + _changeBy < 0) // if we dont have enough to change, then let the calling function know
+                    return false;
+                resourceStone += _changeBy;
+                if (resourceStone <= 0)
+                    resourceStone = 0;
+                break;
+            case SimpleInteractor.ResourceType.Gold:
+                if (resourceGold + _changeBy < 0) // if we dont have enough to change, then let the calling function know
+                    return false;
+                resourceGold += _changeBy;
+                if (resourceGold <= 0)
+                    resourceGold = 0;
+                break;
             default:
                 break;
         }
@@ -84,3 +108,5 @@ public class Manager_Objects : MonoBehaviour
 
 
     }// end of Manager_Objects class
+
+

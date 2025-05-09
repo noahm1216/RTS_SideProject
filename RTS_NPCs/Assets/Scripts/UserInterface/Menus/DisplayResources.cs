@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class DisplayResources : MonoBehaviour
 {
 
-    public TextMeshProUGUI woodText;
+    public TextMeshProUGUI woodText, foodText, stoneText, goldText;
 
     public void OnEnable()
     {        
@@ -24,6 +24,12 @@ public class DisplayResources : MonoBehaviour
         //print("THE UI IS READY TO CHANGE ");
         if (woodText)
             woodText.text = Manager_Objects.resourceWood.ToString();
+        if (foodText)
+            foodText.text = Manager_Objects.resourceFood.ToString();
+        if (stoneText)
+            stoneText.text = Manager_Objects.resourceStone.ToString();
+        if (goldText)
+            goldText.text = Manager_Objects.resourceGold.ToString();
 
     }
 }
