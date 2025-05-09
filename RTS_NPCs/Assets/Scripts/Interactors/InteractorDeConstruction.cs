@@ -192,7 +192,9 @@ public class InteractorDeConstruction : MonoBehaviour //  LAST LEFT OFF: i was c
 
     private void UpdateHPDisplay()
     {
-        if (debugTextHP)
+        if (debugTextHP && ref_SimpleInteractor)
+            debugTextHP.text = $"{ref_SimpleInteractor.myBuilding}: {health}";
+        else
             debugTextHP.text = $"HP: {health}";
     }
 
