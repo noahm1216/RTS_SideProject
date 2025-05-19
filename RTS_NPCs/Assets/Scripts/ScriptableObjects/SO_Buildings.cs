@@ -15,6 +15,7 @@ public class SO_Buildings : ScriptableObject
     SimpleInteractor.ResourceType resourceType;
 
     public Transform prefabToSpawn;
+    public Transform prefabToPreview;   
     public ResourceTypes resourceCosts;
 
 }

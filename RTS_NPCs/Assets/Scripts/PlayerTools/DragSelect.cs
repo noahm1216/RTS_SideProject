@@ -84,8 +84,8 @@ public class DragSelect : MonoBehaviour
             RaycastHit hit; // Get the initial click position of the mouse. 
             Ray ray = myOrthoCam.ScreenPointToRay(Input.mousePosition);
             // if raycast hits a collider point
-            if (Physics.Raycast(ray, out hit, leftClickableLayers))
-                SelectionUpdater(ray, hit);
+            if (Physics.Raycast(ray, out hit, leftClickableLayers)) // TODO: Create a solution for being able to select in areas without a collission. I dont want to NEED to hit the ground to continue my selection
+                SelectionUpdater(ray, hit);           
         }
 
         // After we release the mouse button.
@@ -120,6 +120,7 @@ public class DragSelect : MonoBehaviour
         Vector3 boxSelectorScale = new Vector3(initialLeftClickPosition.x - currentLeftClickPosition.x, 0.5f, initialLeftClickPosition.z - currentLeftClickPosition.z);
         selectorCubeParent.localScale = boxSelectorScale;
     }// end of SelectionUpdater()
+
 
     private void SelectionEnded()
     {

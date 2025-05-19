@@ -28,7 +28,7 @@ public class DisplayBuildings : MonoBehaviour
             bool buildingRepresented = false;
             BuildingUIData buildUIData = null;
 
-            print($"Checking Building: {allPossibleBuildings[buildings].buildingName}");
+            //print($"Checking Building: {allPossibleBuildings[buildings].buildingName}");
 
             for (int uiChild = 0; uiChild < buildingUIDataObjTemplate.parent.childCount; uiChild++)
             {
@@ -57,7 +57,7 @@ public class DisplayBuildings : MonoBehaviour
             buildingRepresented = false;
             buildUIData = null;
 
-            print($"Checking Building: {allPossibleBuildings[buildings].buildingName}");
+            //print($"Checking Building: {allPossibleBuildings[buildings].buildingName}");
         }
     }
 
@@ -66,7 +66,7 @@ public class DisplayBuildings : MonoBehaviour
         if (!_buildingToSpawn)
         { Debug.Log("WARNING: Missing Reference to buildingToSpawn"); return; }
 
-
-        print("SpawningBuilding: " + _buildingToSpawn.name);
+        Manager_Spawner.ChangeBuildingSelected(_buildingToSpawn);
+        //print("SpawningBuilding: " + _buildingToSpawn.name);
     }
 }

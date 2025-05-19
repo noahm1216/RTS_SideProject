@@ -8,7 +8,6 @@ using UnityEngine.Events;
 /// </summary>
 public class SimpleInteractor : MonoBehaviour
 {
-
     public string actionName;
     public UnitExperienceHistory.ExperienceType listedExperience;
 
