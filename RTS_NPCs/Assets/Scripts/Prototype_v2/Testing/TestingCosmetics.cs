@@ -3,33 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-
-public class UnitData
-{
-    // EXPECTED STATS || (a higher level manager can handle holding onto perks and things we accrue)
-    // constitution ( hp )
-    // dexterity (speed moving / haf of speedBuilding)
-    // strength (dmg / half of speedBuilding)
-    // intelligence (half of upgradeXp / relationship with nature)
-    // wisdom ( half of upgradeXp / experience learning skills)
-
-
-    // EXPECTED DATA
-    // bool isSelected
-    // int hp
-    // float speedMove
-    // float speedAction
-    // enum - ACTION TAKING {Idle, Walking, Gathering, Building, Attacking, Relaxing}
-    // list<ActivitiesDone> (a custom list with actions and integers so each time an activity is done like 'chop wood' its added to the list)
-
-
-    // EXPECTED COSMETICS
-    // colorSkin
-    // colorScheme1
-    // colorScheme2
-}
-
-public class Cosmetic_Unit_Data : MonoBehaviour
+public class TestingComsetics : MonoBehaviour
 {
     public bool canDragToScale;
     public ScaleOnDrag[] scaleOnDragComponents;
@@ -63,7 +37,7 @@ public class Cosmetic_Unit_Data : MonoBehaviour
     public void ChangeCanDragToScale(bool _canDragToScale)
     {
         canDragToScale = _canDragToScale;
-        if (scaleOnDragComponents.Length == 0){ Debug.LogWarning("Missing Script Refs"); return; }
+        if (scaleOnDragComponents.Length == 0) { Debug.LogWarning("Missing Script Refs"); return; }
         for (int i = 0; i < scaleOnDragComponents.Length; i++)
             scaleOnDragComponents[i].enabled = canDragToScale;
     }
@@ -94,9 +68,9 @@ public class Cosmetic_Unit_Data : MonoBehaviour
     {
         if (bodyParts.Length == 0) { Debug.LogWarning("Missing Transform Refs"); return; }
 
-            bodyScaleData = new Vector3[bodyParts.Length];
-            for (int i = 0; i < bodyParts.Length; i++)
-                bodyScaleData[i] = bodyParts[i].localScale;
+        bodyScaleData = new Vector3[bodyParts.Length];
+        for (int i = 0; i < bodyParts.Length; i++)
+            bodyScaleData[i] = bodyParts[i].localScale;
     }
 
     public void ResetBodyToScaleData(bool _toFactory)
