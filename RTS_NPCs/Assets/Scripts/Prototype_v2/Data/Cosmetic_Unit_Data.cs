@@ -31,6 +31,8 @@ public class UnitData
 
 public class Cosmetic_Unit_Data : MonoBehaviour
 {
+    public bool canDragToScale;
+    public ScaleOnDrag[] scaleOnDragComponents;
     public Transform[] bodyParts { get; private set; }
     public Vector3[] bodyScaleData { get; private set; }
     public Vector3[] factoryResetScale { get; private set; }
@@ -43,7 +45,8 @@ public class Cosmetic_Unit_Data : MonoBehaviour
             "\nPress: 1 - to get all body parts" +
             "\nPress: 2 - to store current parts scale data" +
             "\nPress: 3 - to reset body parts to original model settings" +
-            "\nPress: 4 - to reset body parts to stored scale data");
+            "\nPress: 4 - to reset body parts to stored scale data" +
+            "\nPress: 5 - to toggle click and dragging to scale body parts");
         GetAllBodyParts();
     }
 
@@ -54,6 +57,15 @@ public class Cosmetic_Unit_Data : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Alpha2)) { print("Store Parts"); StoreAllScaleData(); }
         if (Input.GetKeyDown(KeyCode.Alpha3)) { print("Reset Stored Parts Factory"); ResetBodyToScaleData(true); }
         if (Input.GetKeyDown(KeyCode.Alpha4)) { print("Reset Stored Parts Previous Save"); ResetBodyToScaleData(false); }
+        if (Input.GetKeyDown(KeyCode.Alpha5)) { print($"Changing Can Drag On Scale To: {!canDragToScale}"); ChangeCanDragToScale(!canDragToScale); }
+    }
+
+    public void ChangeCanDragToScale(bool _canDragToScale)
+    {
+        canDragToScale = _canDragToScale;
+        if (scaleOnDragComponents.Length == 0){ Debug.LogWarning("Missing Script Refs"); return; }
+        for (int i = 0; i < scaleOnDragComponents.Length; i++)
+            scaleOnDragComponents[i].enabled = canDragToScale;
     }
 
     public void ValueChanged()
@@ -67,10 +79,14 @@ public class Cosmetic_Unit_Data : MonoBehaviour
 
         // Get all Transforms in the hierarchy, including the parent
         bodyParts = GetComponentsInChildren<Transform>();
-
+        scaleOnDragComponents = new ScaleOnDrag[bodyParts.Length];
         factoryResetScale = new Vector3[bodyParts.Length];
+
         for (int i = 0; i < bodyParts.Length; i++)
+        {
+            if (bodyParts[i].GetComponent<ScaleOnDrag>()) scaleOnDragComponents[i] = bodyParts[i].GetComponent<ScaleOnDrag>();
             factoryResetScale[i] = bodyParts[i].localScale;
+        }
     }
 
 
@@ -78,20 +94,9 @@ public class Cosmetic_Unit_Data : MonoBehaviour
     {
         if (bodyParts.Length == 0) { Debug.LogWarning("Missing Transform Refs"); return; }
 
-        if (bodyScaleData.Length > 0)
-        {
-            for (int i = 0; i < bodyScaleData.Length; i++)
-            {
-                if (i < bodyParts.Length && bodyParts[i])
-                    bodyScaleData[i] = bodyParts[i].localScale;
-            }
-        }
-        else
-        {
             bodyScaleData = new Vector3[bodyParts.Length];
             for (int i = 0; i < bodyParts.Length; i++)
                 bodyScaleData[i] = bodyParts[i].localScale;
-        }
     }
 
     public void ResetBodyToScaleData(bool _toFactory)
@@ -101,7 +106,7 @@ public class Cosmetic_Unit_Data : MonoBehaviour
         Vector3[] replacerData = new Vector3[0];
         if (_toFactory) replacerData = factoryResetScale;
         else replacerData = bodyScaleData;
-        if (replacerData == null) { Debug.LogWarning($"Couldnt Store Data Due To Missing References: '_toFactore' = {_toFactory}"); return; }
+        if (replacerData == null) { Debug.LogWarning($"Couldnt Store Data Due To Missing References: '_toFactorY' = {_toFactory}"); return; }
         for (int i = 0; i < replacerData.Length; i++) // apply the local scale changes
             bodyParts[i].localScale = replacerData[i];
     }
