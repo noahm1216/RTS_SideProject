@@ -1,0 +1,71 @@
+Below lists what I am most passionate about for this experience
+
+- player can decide how to build their village
+- player can evolve their village to a city
+- player can customize their people/village
+- player define their level of challenge organically
+	(making intentional choices that lead to more or less challenging experiences)
+
+- The growth system should be simple, so we only have 2 resources
+	- Materials = Building / Customizing the village
+	- Supplies = Creating / Customizing the villagers
+
+-If the game is about growth here are interesting challenges the player may be up against
+	-> limited resources = {literal resources, competition from others, sustain costs}
+	-> which way to grow = {improve what we have, learn to do more}
+	-> gathering choices = {collecting, stealing, questing, conquering}
+	-> relationships = {helping others survive, getting special nature events for finding/protecting an area}
+	
+
+- Prototype/Demo
+	- focused on single player proof of concept
+	- map should be big enough to showcase one or two of each element (doesnt need to be huge)
+	- should feel like a tiny living world
+	- units should have starchly different customization options
+		(players should be able to make body types through sliders like dwarves vs elfs)
+	- buildings should have simple different options (like material/texture presets we can swap between)
+	- custom colors for units and buildings is important (skin color, and a 2-tier clothing pattern)
+	- upgrades should feel like playstyle choices
+		(not anyone choice is default best, and each supports a specific playstyle) 
+
+- Player Experience
+	- Average session: 75 minutes (45-100m more or less is okay if its still fun and uncommon)
+	- Emotions: Curious (to try things), Excited (to beat, fix, solve challenges), Rewarded (for having their gameplay choices provided respectable results)
+	- Setting: Fictional Fantasy (start like caveman version, potentially grow to scifi)
+	- Controlled Context: Players can build/control units, multiple buildings
+	- A progression system based on perks (can be named something else) that defines the civilizations strengths
+		(examples can be faster units, faster building, faster collecting, faster learning perks, tougher/healthier units, etc)
+	- Gameplay Loop:
+			1) Customize / Choose
+			2) Explore / Discover
+			3) React / Collect / Destroy / Protect
+			4) Benefit / Profit / Progress (now time to spend those profits on #1)
+	- Rough Simulation
+			1) Customize base unit that all units will look similar too & choose a base perk
+			2) Players will load into a map only able to see around where their units start
+			3) With around 3 units at start they can choose to Build, Collect, Explore, Combat
+	- Unit Progression
+			- Most units will remain standard, but in certain situations units will gain enough experience to evolve and become larger / better and even get a nickname the player can change
+			- on progression it would be nice if they were offered choices based on what they have experience doing, meaning each unit should track what experience it has
+			- units can slowly grow automatically by repeating tasks, but significant growth should happen from large milestones that are not common to hit
+			
+	
+
+- Scenario Examples
+	- Player A
+		- wants to make their character look like orcs from dnd, and wants to build a grand army that can conquer nature and other civilizations
+	- Player B
+		- wants to make gray gnomes that invent machinery to collect resources so they end up progressing technology faster
+	- Player C
+		- wants to make druid like elves who build a bond with nature and gain units and special rewards from the environment
+
+   
+
+Suggestion for a First Prototype
+
+Given your interests and experience level:
+	- Focus your first prototype around building, resource flow, and player-defined pacing.
+	- Skip combat initially — just have the world “react” (maybe small threats, weather, or growth challenges).
+	- Add your “peaceful vs. aggressive” toggle as a simple global modifier.
+	- Build out from there.
+That gives you a satisfying core that you can later expand into RTS, survival, or sandbox directions — whichever feels best in playtesting.
