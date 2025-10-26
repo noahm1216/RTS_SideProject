@@ -37,6 +37,10 @@ public class UnitData : ScriptableObject
     [Header("Identity")]
     [Tooltip("Which race this unit belongs to.")]
     public UnitRace race;
+    [Tooltip("Names the unit might spawn with.")]
+    public string[] possibleNames;
+
+
 
     [Tooltip("Icon used in UI or unit selection panels.")]
     public Sprite icon;
@@ -44,6 +48,7 @@ public class UnitData : ScriptableObject
     [Header("Prefab Reference")]
     [Tooltip("The 3D prefab model used when spawning this unit.")]
     public GameObject basePrefab;
+    public GameObject alternativePrefab;
 
     [Header("Base Stats")]
     [Tooltip("Total health points of the unit.")]
@@ -66,11 +71,10 @@ public class UnitData : ScriptableObject
 #endregion
 
 
-
 #region RUNTIME UNIT
 
 
-
+[RequireComponent(typeof(UnitCosmetics))]
 public class Unit : MonoBehaviour
 {
     //[Header("Runtime Data")]
@@ -87,6 +91,7 @@ public class Unit : MonoBehaviour
     public int CurrentHP { get; private set; }
     public float SpeedMove { get; private set; }
     public float SpeedAction { get; private set; }
+    public float LastActionTimeStamp { get; private set; }
 
     //[Space]
     public bool IsSelected { get; set; }
@@ -95,6 +100,8 @@ public class Unit : MonoBehaviour
 
     [Tooltip("All tracked experiences from performed actions.")]
     public List<UnitExperience> Experience { get; private set; } = new List<UnitExperience>();
+
+    public Vector3 targetMovePosition { get; private set; }
 
     // Initialize from ScriptableObject data
     public void InitializeFromData(UnitData data)
@@ -105,7 +112,7 @@ public class Unit : MonoBehaviour
         SpeedMove = data.speedMove;
         SpeedAction = data.speedAction;
 
-        if (TryGetComponent(out UnitCosmetics cosmetics)) Cosmetics = cosmetics;
+        if (transform.TryGetComponent(out UnitCosmetics cosmetics)) Cosmetics = cosmetics;
         else Debug.LogWarning($"Unit '{gameObject.name}' is missing a UnitCosmetics component.");
 
         // Initialize cosmetics based on data’s default or saved preset
@@ -126,13 +133,14 @@ public class Unit : MonoBehaviour
     }
 
     // Example of runtime interaction
-    public void SetAction(UnitData.ActionTaking action)
+    public void SetAction(UnitData.ActionTaking _action)
     {
-        CurrentAction = action;
-        RecordExperience(action);
+        if (CurrentAction != _action) LastActionTimeStamp = Time.time - SpeedAction;
+        CurrentAction = _action;
+        // reset timer if not the same as our current action
     }
 
-    private void RecordExperience(UnitData.ActionTaking action)
+    public void RecordExperience(UnitData.ActionTaking action)
     {
         var exp = Experience.Find(x => x.action == action);
         if (exp == null)
@@ -140,105 +148,14 @@ public class Unit : MonoBehaviour
         else
             exp.timesActed++;
     }
-}
 
-#endregion
-
-
-
-
-#region COSMETIC SYSTEM
-
-/// <summary>
-/// Handles runtime cosmetic control and data syncing.
-/// </summary>
-public class UnitCosmetics : MonoBehaviour
-{
-    public bool CanDragToScale { get; private set; }
-    public ScaleOnDrag[] ScaleComponents { get; private set; }
-    public Transform[] BodyParts { get; private set; }
-    private Vector3[] _factoryScale;
-
-    private void Awake()
+    public void SetWalkTarget(Vector3 _targPos)
     {
-        GetAllBodyParts();
-    }
-
-    public void GetAllBodyParts()
-    {
-        BodyParts = GetComponentsInChildren<Transform>();
-        ScaleComponents = new ScaleOnDrag[BodyParts.Length];
-        _factoryScale = new Vector3[BodyParts.Length];
-
-        for (int i = 0; i < BodyParts.Length; i++)
-        {
-            ScaleComponents[i] = BodyParts[i].GetComponent<ScaleOnDrag>();
-            _factoryScale[i] = BodyParts[i].localScale;
-        }
-    }
-
-    public void ChangeCanDragToScale(bool enable)
-    {
-        CanDragToScale = enable;
-        foreach (var scale in ScaleComponents)
-        {
-            if (scale != null)
-                scale.enabled = enable;
-        }
-    }
-
-    public void ApplyCosmeticData(UnitCosmeticData data)
-    {
-        if (BodyParts == null || BodyParts.Length == 0)
-            GetAllBodyParts();
-
-        if (data == null)
-        {
-            Debug.LogWarning("Tried to apply null cosmetic data.");
-            return;
-        }
-
-        // Apply color schemes
-        foreach (var renderer in GetComponentsInChildren<Renderer>())
-        {
-            var mats = renderer.materials;
-            foreach (var mat in mats)
-            {
-                mat.color = data.colorScheme1;
-            }
-        }
-
-        // Apply scale data
-        for (int i = 0; i < BodyParts.Length && i < data.bodyPartsScale.Length; i++)
-            BodyParts[i].localScale = data.bodyPartsScale[i];
-    }
-
-    public UnitCosmeticData ExtractCosmeticData()
-    {
-        if (BodyParts == null || BodyParts.Length == 0)
-            GetAllBodyParts();
-
-        UnitCosmeticData data = new UnitCosmeticData
-        {
-            bodyPartsScale = new Vector3[BodyParts.Length]
-        };
-
-        for (int i = 0; i < BodyParts.Length; i++)
-            data.bodyPartsScale[i] = BodyParts[i].localScale;
-
-        return data;
-    }
-
-    public void ResetToFactoryScale()
-    {
-        for (int i = 0; i < BodyParts.Length; i++)
-            BodyParts[i].localScale = _factoryScale[i];
+        targetMovePosition = _targPos;
     }
 }
 
 #endregion
-
-
 
 
 #region SUPPORTING DATA

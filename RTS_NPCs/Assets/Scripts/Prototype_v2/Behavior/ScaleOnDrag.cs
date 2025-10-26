@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [RequireComponent(typeof(SphereCollider))]
-public class ScaleOnDrag : MonoBehaviour
+public class ScaleOnDrag : MonoBehaviour /// this goes on any BONES or body parts we want to allow the player to scale and save. you can adjust the collider added if you desire
 {
     private Vector3 dragStartMousePosition;
     private Vector3 initialObjectScale;

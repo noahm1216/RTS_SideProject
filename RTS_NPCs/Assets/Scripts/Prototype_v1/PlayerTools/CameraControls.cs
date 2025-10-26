@@ -10,13 +10,15 @@ using UnityEngine;
 public class CameraControls : MonoBehaviour
 {
     public Transform transCamPlayer;
+    private Camera theCam;
     public Transform transCamPlayerOverrideForward;
     private Vector3 camPos;
     public Space spaceRelative;
     public float speedCamMove;
     private float moveMultiplier = 1; // presh shift to make 2
+    private bool isOrthographic;
     public float zoomScale;
-    public Vector3 rangeCamZoom; //x = current , y = min, z = max
+    public float camZoomMin = 3, camZoomMax = 18;
     
 
     //start
@@ -25,13 +27,17 @@ public class CameraControls : MonoBehaviour
         //initalize refs
         if (transCamPlayer == null) transCamPlayer = Camera.main.transform;
         camPos = transCamPlayer.position;
+        transCamPlayer.TryGetComponent(out theCam);
+        if (!theCam) transCamPlayerOverrideForward.TryGetComponent(out theCam);
+        if (!theCam) theCam = Camera.main;
+        if (!theCam) Debug.LogWarning("Missing camera object");
+        else isOrthographic = theCam.orthographic;
     }//end of start
 
     // Update is called once per frame
     void Update()
     {
         //have a check if game is paused or menu is open
-
         CheckForInputs(); //let player move camera and zoom in/out
     }//end update
 
@@ -50,13 +56,14 @@ public class CameraControls : MonoBehaviour
         //holding shift
 
         //rangeCamZoom.z += Input.mouseScrollDelta.y * zoomScale; // change the zoom by our middle mouse
-        transCamPlayer.Translate(Vector3.forward * Input.mouseScrollDelta.y * zoomScale); //move camera to the zoomed in/out position
+        if (Mathf.Abs(Input.mouseScrollDelta.y) > 0.01f)
+        {
+            if (isOrthographic) theCam.orthographicSize += Input.mouseScrollDelta.y * zoomScale;
+            else transCamPlayer.Translate(Vector3.forward * Input.mouseScrollDelta.y * zoomScale); //move camera to the zoomed in/out position
 
-        //if (rangeCamZoom.x <= rangeCamZoom.y) // min zoom
-        //    rangeCamZoom.x = rangeCamZoom.y;
-
-        //if (rangeCamZoom.x >= rangeCamZoom.z) // max zoom
-        //    rangeCamZoom.x = rangeCamZoom.z;
+            if (theCam.orthographicSize < camZoomMin) theCam.orthographicSize = camZoomMin;
+            if (theCam.orthographicSize > camZoomMax) theCam.orthographicSize = camZoomMax;
+        }      
 
     }//end of check for inputs
 

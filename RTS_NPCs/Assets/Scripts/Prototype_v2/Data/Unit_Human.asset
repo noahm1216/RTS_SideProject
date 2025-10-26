@@ -13,11 +13,25 @@ MonoBehaviour:
   m_Name: Unit_Human
   m_EditorClassIdentifier: Assembly-CSharp::UnitData
   race: 0
-  icon: {fileID: 0}
-  basePrefab: {fileID: 0}
-  hp: 1
-  speedMove: 10
-  speedAction: 0.5
+  possibleNames:
+  - fehned bekha
+  - cuhnohroh costo
+  - jardun resha
+  - ohreil rokil
+  - greldolm Clearpeak
+  - jhosverle Mossbash
+  - dikvog Redscar
+  - kiwa Evenswift
+  - nahri glidz
+  - re stezav
+  - brar rokorsk
+  - min zergumen
+  icon: {fileID: 21300000, guid: 96bed39aa1cb09b4c99b345a16c33ffa, type: 3}
+  basePrefab: {fileID: 7500589642591975196, guid: 54f5e67f3543be945905da3f6f85c499, type: 3}
+  alternativePrefab: {fileID: 7500589642591975196, guid: 9c1b1f56e1abbec43abd7ffabbaec2ea, type: 3}
+  hp: 100
+  speedMove: 5
+  speedAction: 1
   defaultCosmetics:
     colorSkin: {r: 1, g: 1, b: 1, a: 1}
     colorScheme1: {r: 0.5, g: 0.5, b: 0.5, a: 1}
