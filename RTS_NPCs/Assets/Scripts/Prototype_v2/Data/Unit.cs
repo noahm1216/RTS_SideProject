@@ -64,7 +64,7 @@ public class UnitData : ScriptableObject
     public float speedAction = 1f;
 
     [Header("Default Appearance")]
-    [Tooltip("Default color and scale cosmetic data applied to this unit when spawned.")]
+    [Tooltip("Default cosmetic preset applied to this unit when spawned.")]
     public UnitCosmeticData defaultCosmetics;
 }
 
@@ -173,23 +173,5 @@ public class UnitExperience
     }
 }
 
-
-[System.Serializable]
-public class UnitCosmeticData
-{
-    [Header("Colors")]
-    [Tooltip("Base skin tone for this unit.")]
-    public Color colorSkin = Color.white;
-
-    [Tooltip("Primary color for clothing or armor.")]
-    public Color colorScheme1 = Color.gray;
-
-    [Tooltip("Secondary color for accents or patterns.")]
-    public Color colorScheme2 = Color.black;
-
-    [Header("Body Scale Data")]
-    [Tooltip("Stores the local scale of each body part for customization.")]
-    public Vector3[] bodyPartsScale;
-}
 
 #endregion

@@ -32,8 +32,4 @@ MonoBehaviour:
   hp: 100
   speedMove: 5
   speedAction: 1
-  defaultCosmetics:
-    colorSkin: {r: 1, g: 1, b: 1, a: 1}
-    colorScheme1: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-    colorScheme2: {r: 0, g: 0, b: 0, a: 1}
-    bodyPartsScale: []
+  defaultCosmetics: {fileID: 11400000, guid: ca7d99ad46e1f83458187787fbda6775, type: 2}

@@ -1,94 +1,119 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-#region COSMETIC SYSTEM
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
-/// <summary>
-/// Handles runtime cosmetic control and data syncing.
-/// </summary>
+[ExecuteAlways]
 public class UnitCosmetics : MonoBehaviour
 {
-    public bool CanDragToScale { get; private set; }
-    public ScaleOnDrag[] ScaleComponents { get; private set; }
-    public Transform[] BodyParts { get; private set; }
+    [Header("Shader Property Names")]
+    [Tooltip("Name of the outline color property in your shader.")]
+    [SerializeField] private string outlineColorProperty = "_OutlineColor";
+
+    [Tooltip("Name of the outline width property in your shader.")]
+    [SerializeField] private string outlineSizeProperty = "_FadeExterior";
+
+    [Tooltip("Shader color remap properties for skin, shirt, and pants.")]
+    [SerializeField] private string redChannelProperty = "_Color_Replace_Red";
+    [SerializeField] private string greenChannelProperty = "_Color_Replace_Blue";
+    [SerializeField] private string blueChannelProperty = "_Color_Replace_Green";
+
+    [HideInInspector] public Transform[] BodyParts;
     private Vector3[] _factoryScale;
 
-    private void Awake()
+    private void OnEnable()
     {
-        GetAllBodyParts();
+        if (!Application.isPlaying)
+            RefreshBodyParts();
     }
 
-    public void GetAllBodyParts()
+    public void RefreshBodyParts()
     {
         BodyParts = GetComponentsInChildren<Transform>();
-        ScaleComponents = new ScaleOnDrag[BodyParts.Length];
         _factoryScale = new Vector3[BodyParts.Length];
-
         for (int i = 0; i < BodyParts.Length; i++)
-        {
-            ScaleComponents[i] = BodyParts[i].GetComponent<ScaleOnDrag>();
             _factoryScale[i] = BodyParts[i].localScale;
-        }
-    }
-
-    public void ChangeCanDragToScale(bool enable)
-    {
-        CanDragToScale = enable;
-        foreach (var scale in ScaleComponents)
-        {
-            if (scale != null)
-                scale.enabled = enable;
-        }
     }
 
     public void ApplyCosmeticData(UnitCosmeticData data)
     {
-        if (BodyParts == null || BodyParts.Length == 0)
-            GetAllBodyParts();
-
         if (data == null)
         {
-            Debug.LogWarning("Tried to apply null cosmetic data.");
+            Debug.LogWarning("No cosmetic data assigned.");
             return;
         }
 
-        // Apply color schemes
-        foreach (var renderer in GetComponentsInChildren<Renderer>())
+        if (BodyParts == null || BodyParts.Length == 0)
+            RefreshBodyParts();
+
+        // --- Apply scale ---
+        if (data.bodyPartsScale != null)
         {
-            var mats = renderer.materials;
-            foreach (var mat in mats)
-            {
-                mat.color = data.colorScheme1;
-            }
+            for (int i = 0; i < BodyParts.Length && i < data.bodyPartsScale.Length; i++)
+                BodyParts[i].localScale = data.bodyPartsScale[i];
         }
 
-        // Apply scale data
-        for (int i = 0; i < BodyParts.Length && i < data.bodyPartsScale.Length; i++)
-            BodyParts[i].localScale = data.bodyPartsScale[i];
+        // --- Apply shader values ---
+        ApplyShaderProperties(data);
+    }
+
+    private void ApplyShaderProperties(UnitCosmeticData data)
+    {
+        foreach (var renderer in GetComponentsInChildren<Renderer>())
+        {
+            foreach (var mat in renderer.sharedMaterials)
+            {
+                if (mat.HasProperty(outlineColorProperty))
+                    mat.SetColor(outlineColorProperty, data.outlineColor);
+
+                if (mat.HasProperty(outlineSizeProperty))
+                    mat.SetFloat(outlineSizeProperty, data.outlineSize);
+
+                if (mat.HasProperty(redChannelProperty))
+                    mat.SetColor(redChannelProperty, data.colorSkin);
+
+                if (mat.HasProperty(greenChannelProperty))
+                    mat.SetColor(greenChannelProperty, data.colorMain);
+
+                if (mat.HasProperty(blueChannelProperty))
+                    mat.SetColor(blueChannelProperty, data.colorSecondary);
+            }
+        }
     }
 
     public UnitCosmeticData ExtractCosmeticData()
     {
         if (BodyParts == null || BodyParts.Length == 0)
-            GetAllBodyParts();
+            RefreshBodyParts();
 
-        UnitCosmeticData data = new UnitCosmeticData
-        {
-            bodyPartsScale = new Vector3[BodyParts.Length]
-        };
+        UnitCosmeticData data = new UnitCosmeticData();
+        data.bodyPartsScale = new Vector3[BodyParts.Length];
 
         for (int i = 0; i < BodyParts.Length; i++)
             data.bodyPartsScale[i] = BodyParts[i].localScale;
+
+        // If you want to capture material values too (for editing existing presets)
+        var r = GetComponentInChildren<Renderer>();
+        if (r && r.sharedMaterial)
+        {
+            var mat = r.sharedMaterial;
+            if (mat.HasProperty(outlineColorProperty)) data.outlineColor = mat.GetColor(outlineColorProperty);
+            if (mat.HasProperty(outlineSizeProperty)) data.outlineSize = mat.GetFloat(outlineSizeProperty);
+            if (mat.HasProperty(redChannelProperty)) data.colorSkin = mat.GetColor(redChannelProperty);
+            if (mat.HasProperty(greenChannelProperty)) data.colorMain = mat.GetColor(greenChannelProperty);
+            if (mat.HasProperty(blueChannelProperty)) data.colorSecondary = mat.GetColor(blueChannelProperty);
+        }
 
         return data;
     }
 
     public void ResetToFactoryScale()
     {
+        if (BodyParts == null || BodyParts.Length == 0)
+            RefreshBodyParts();
+
         for (int i = 0; i < BodyParts.Length; i++)
             BodyParts[i].localScale = _factoryScale[i];
     }
 }
-
-#endregion
