@@ -11,7 +11,7 @@ public class ManagerUnits : MonoBehaviour
     PlayerType playerType;
 
     [SerializeField] private UnitData[] unitPresets;
-    public static List<Unit> unitsSpawned = new List<Unit>();
+    public List<Unit> unitsSpawned = new List<Unit>();
 
     private void Awake()
     {

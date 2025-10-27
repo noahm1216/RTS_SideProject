@@ -47,7 +47,7 @@ public class BrainPlayer : MonoBehaviour
 
     private void HandleSelectionInput()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0)) // not currently working to click on a single unit
         {
             dragStartPos = Input.mousePosition;
             isDragging = false;
@@ -73,6 +73,16 @@ public class BrainPlayer : MonoBehaviour
                 HandleBoxSelect(shift, ctrl);
 
             isDragging = false;
+
+            if (UI_UnitInformation.Instance && ManagerUnits.Instance)
+            {
+                List<Unit> unitsSelected = new List<Unit>();
+                for (int i = 0; i < ManagerUnits.Instance.unitsSpawned.Count; i++)
+                    if (ManagerUnits.Instance.unitsSpawned[i].IsSelected)
+                        unitsSelected.Add(ManagerUnits.Instance.unitsSpawned[i]);
+
+                UI_UnitInformation.Instance.SelectedUnits(unitsSelected.ToArray());
+            }
         }      
     }
 
@@ -104,6 +114,8 @@ public class BrainPlayer : MonoBehaviour
             // Clear if clicked on empty space without modifier
             ClearSelection();
         }
+
+
     }
 
     private void HandleBoxSelect(bool shift, bool ctrl)
@@ -115,7 +127,7 @@ public class BrainPlayer : MonoBehaviour
         if (!shift && !ctrl)
             ClearSelection();
         
-        Unit[] allUnits = ManagerUnits.unitsSpawned.ToArray(); //FindObjectsOfType<Unit>();
+        Unit[] allUnits = ManagerUnits.Instance.unitsSpawned.ToArray(); //FindObjectsOfType<Unit>();
         foreach (Unit u in allUnits)
         {
             Vector3 screenPos = mainCam.WorldToScreenPoint(u.transform.position);
